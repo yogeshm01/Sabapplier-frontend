@@ -28,7 +28,7 @@ const Login = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-100 flex items-center justify-center bg-gray-100">
             <div className="w-full max-w-md bg-white shadow-md rounded-lg p-8">
                 <h1 className="text-2xl font-bold text-center text-blue-600 mb-2">Welcome to the DocAI</h1>
                 <p className="text-center text-gray-600 mb-6">Please log in to continue.</p>

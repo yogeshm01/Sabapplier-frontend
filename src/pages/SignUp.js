@@ -33,7 +33,7 @@ const SignUp = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-100 relative">
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-100 flex items-center justify-center bg-gray-100 relative">
             {/* Toast notification */}
             {toast.message && (
                 <div
