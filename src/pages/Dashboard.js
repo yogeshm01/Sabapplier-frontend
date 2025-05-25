@@ -1,335 +1,336 @@
 import React, { useEffect, useState } from "react";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
 import axios from "../api/axios";
 
 const Dashboard = () => {
-  const [documents, setDocuments] = useState([]);
-  const [file, setFile] = useState(null);
-  const [title, setTitle] = useState("");
+    const [documents, setDocuments] = useState([]);
+    const [file, setFile] = useState(null);
+    const [title, setTitle] = useState("");
 
-  const [editingDocId, setEditingDocId] = useState(null);
-  const [editTitle, setEditTitle] = useState("");
-  const [editFile, setEditFile] = useState(null);
+    const [editingDocId, setEditingDocId] = useState(null);
+    const [editTitle, setEditTitle] = useState("");
+    const [editFile, setEditFile] = useState(null);
 
-  const [selectedDocId, setSelectedDocId] = useState(null);
-  const [question, setQuestion] = useState("");
-  const [answer, setAnswer] = useState("");
+    const [selectedDocId, setSelectedDocId] = useState(null);
+    const [question, setQuestion] = useState("");
+    const [answer, setAnswer] = useState("");
 
-  const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(false);
 
-  // Redirect if not authenticated
-  useEffect(() => {
-    if (!localStorage.getItem("access")) {
-      window.location.href = "/";
-    }
-  }, []);
+    useEffect(() => {
+        if (!localStorage.getItem("access")) {
+            window.location.href = "/";
+        }
+    }, []);
 
-  // Fetch documents list
-  const fetchDocuments = async () => {
-    setLoading(true);
-    try {
-      const res = await axios.get("/documents/");
-      setDocuments(res.data);
-    } catch (err) {
-      console.error("Failed to load documents:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    const fetchDocuments = async () => {
+        setLoading(true);
+        try {
+            const res = await axios.get("/documents/");
+            setDocuments(res.data);
+        } catch (err) {
+            console.error("Failed to load documents:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-  useEffect(() => {
-    fetchDocuments();
-  }, []);
+    useEffect(() => {
+        fetchDocuments();
+    }, []);
 
-  // Upload new document
-  const handleUpload = async (e) => {
-    e.preventDefault();
-    if (!file || !title) return;
+    const handleUpload = async (e) => {
+        e.preventDefault();
+        if (!file || !title) return;
 
-    const formData = new FormData();
-    formData.append("title", title);
-    formData.append("file", file);
+        const formData = new FormData();
+        formData.append("title", title);
+        formData.append("file", file);
 
-    setLoading(true);
-    try {
-      await axios.post("/documents/", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-      setFile(null);
-      setTitle("");
-      await fetchDocuments();
-    } catch (err) {
-      console.error("Upload failed", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+        setLoading(true);
+        try {
+            await axios.post("/documents/", formData, {
+                headers: { "Content-Type": "multipart/form-data" },
+            });
+            toast.success("Document uploaded successfully!");
+            setFile(null);
+            setTitle("");
+            await fetchDocuments();
+        } catch (err) {
+            console.error("Upload failed", err);
+            toast.error("Upload failed.");
+        } finally {
+            setLoading(false);
+        }
+    };
 
-  // Delete document
-  const handleDelete = async (id) => {
-    setLoading(true);
-    try {
-      await axios.delete(`/documents/${id}/`);
-      if (selectedDocId === id) {
-        setSelectedDocId(null);
-        setQuestion("");
+    const handleDelete = async (id) => {
+        setLoading(true);
+        try {
+            await axios.delete(`/documents/${id}/`);
+            toast.success("Document deleted!");
+            if (selectedDocId === id) {
+                setSelectedDocId(null);
+                setQuestion("");
+                setAnswer("");
+            }
+            if (editingDocId === id) {
+                setEditingDocId(null);
+                setEditTitle("");
+                setEditFile(null);
+            }
+            await fetchDocuments();
+        } catch (err) {
+            console.error("Delete failed", err);
+            toast.error("Delete failed.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const startEdit = (doc) => {
+        setEditingDocId(doc.id);
+        setEditTitle(doc.title);
+        setEditFile(null);
         setAnswer("");
-      }
-      if (editingDocId === id) {
+        setQuestion("");
+    };
+
+    const cancelEdit = () => {
         setEditingDocId(null);
         setEditTitle("");
         setEditFile(null);
-      }
-      await fetchDocuments();
-    } catch (err) {
-      console.error("Delete failed", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
-  // Start editing document
-  const startEdit = (doc) => {
-    setEditingDocId(doc.id);
-    setEditTitle(doc.title);
-    setEditFile(null);
-    setAnswer("");
-    setQuestion("");
-  };
+    const handleUpdate = async (e) => {
+        e.preventDefault();
+        if (!editTitle) return;
 
-  // Cancel editing
-  const cancelEdit = () => {
-    setEditingDocId(null);
-    setEditTitle("");
-    setEditFile(null);
-  };
+        const formData = new FormData();
+        formData.append("title", editTitle);
+        if (editFile) formData.append("file", editFile);
 
-  // Update document (PUT)
-  const handleUpdate = async (e) => {
-    e.preventDefault();
-    if (!editTitle) return;
+        setLoading(true);
+        try {
+            await axios.put(`/documents/${editingDocId}/`, formData, {
+                headers: { "Content-Type": "multipart/form-data" },
+            });
+            toast.success("Document updated!");
+            cancelEdit();
+            await fetchDocuments();
+        } catch (err) {
+            console.error("Update failed", err);
+            toast.error("Update failed.");
+        } finally {
+            setLoading(false);
+        }
+    };
 
-    const formData = new FormData();
-    formData.append("title", editTitle);
-    if (editFile) formData.append("file", editFile);
+    const handleAsk = async () => {
+        if (!question) return;
 
-    setLoading(true);
-    try {
-      await axios.put(`/documents/${editingDocId}/`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-      cancelEdit();
-      await fetchDocuments();
-    } catch (err) {
-      console.error("Update failed", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+        setLoading(true);
+        try {
+            const res = await axios.post(`/documents/${selectedDocId}/ask/`, {
+                question,
+            });
+            setAnswer(res.data.answer);
+            toast.success("Answer generated!");
+        } catch (err) {
+            console.error("Q&A failed", err);
+            setAnswer("Something went wrong while answering.");
+            toast.error("Something went wrong while answering.");
+        } finally {
+            setLoading(false);
+        }
+    };
 
-  // Ask question about a document
-  const handleAsk = async () => {
-    if (!question) return;
+    const handleLogout = () => {
+        localStorage.removeItem("access");
+        localStorage.removeItem("refresh");
+        window.location.href = "/";
+    };
 
-    setLoading(true);
-    try {
-      const res = await axios.post(`/documents/${selectedDocId}/ask/`, {
-        question,
-      });
-      setAnswer(res.data.answer);
-    } catch (err) {
-      console.error("Q&A failed", err);
-      setAnswer("Something went wrong while answering.");
-    } finally {
-      setLoading(false);
-    }
-  };
+    return (
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-100 text-gray-800 p-6 flex flex-col items-center">
+            <header className="mb-10 text-center">
+                <h1 className="text-3xl font-bold text-blue-700">DocAI Dashboard</h1>
+                <p className="text-gray-600 mt-2 text-sm">
+                    ➤ Upload ➤ Manage ➤ Ask Questions — Powered by AI
+                </p>
+            </header>
 
-  // Logout user
-  const handleLogout = () => {
-    localStorage.removeItem("access");
-    localStorage.removeItem("refresh");
-    window.location.href = "/";
-  };
 
-  return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      <div className="max-w-4xl mx-auto bg-white shadow-md rounded-lg p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-blue-600">📄 Dashboard</h2>
-          <button
-            onClick={handleLogout}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-          >
-            Logout
-          </button>
-        </div>
-
-        {/* Loading indicator */}
-        {loading && (
-          <div className="flex justify-center items-center mb-4">
-            <div className="w-6 h-6 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-          </div>
-        )}
-
-        {/* Upload or Edit form */}
-        {editingDocId ? (
-          <form onSubmit={handleUpdate} className="space-y-4 mb-6">
-            <h3 className="text-lg font-semibold text-gray-700">
-              Update Document #{editingDocId}
-            </h3>
-            <input
-              type="text"
-              value={editTitle}
-              onChange={(e) => setEditTitle(e.target.value)}
-              required
-              className="w-full border px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <input
-              type="file"
-              accept="application/pdf"
-              onChange={(e) => setEditFile(e.target.files[0])}
-              className="w-full"
-            />
-            <div className="space-x-2">
-              <button
-                type="submit"
-                disabled={loading}
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
-              >
-                Update Document
-              </button>
-              <button
-                type="button"
-                onClick={cancelEdit}
-                disabled={loading}
-                className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500 disabled:opacity-50"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        ) : (
-          <form onSubmit={handleUpload} className="space-y-4 mb-6">
-            <h3 className="text-lg font-semibold text-gray-700">
-              Upload New Document
-            </h3>
-            <input
-              type="text"
-              placeholder="Document title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-              className="w-full border px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              disabled={loading}
-            />
-            <input
-              type="file"
-              accept="application/pdf"
-              onChange={(e) => setFile(e.target.files[0])}
-              required
-              className="w-full"
-              disabled={loading}
-            />
-            <button
-              type="submit"
-              disabled={loading}
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
-            >
-              Upload
-            </button>
-          </form>
-        )}
-
-        {/* Document list */}
-        <h3 className="text-lg font-semibold text-gray-700 mb-2">
-          Your Documents
-        </h3>
-        {documents.length === 0 ? (
-          <p className="text-gray-500">No documents found.</p>
-        ) : (
-          <ul className="space-y-3">
-            {documents.map((doc) => (
-              <li
-                key={doc.id}
-                className="flex flex-col md:flex-row md:items-center justify-between bg-gray-50 border rounded p-3"
-              >
-                <div className="font-medium text-gray-800">
-                  {doc.title}{" "}
-                  <span className="text-sm text-gray-500">
-                    ({doc.file.split("/").pop()})
-                  </span>
+            {loading && (
+                <div className="mb-6">
+                    <div className="w-6 h-6 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                 </div>
-                <div className="mt-2 md:mt-0 space-x-2">
-                  <button
-                    onClick={() => startEdit(doc)}
-                    disabled={loading}
-                    className="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 disabled:opacity-50"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(doc.id)}
-                    disabled={loading}
-                    className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 disabled:opacity-50"
-                  >
-                    Delete
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSelectedDocId(doc.id);
-                      setAnswer("");
-                      setQuestion("");
-                    }}
-                    disabled={loading}
-                    className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 disabled:opacity-50"
-                  >
-                    Ask
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        {/* Ask question form */}
-        {selectedDocId && (
-          <div className="mt-8">
-            <h3 className="text-lg font-semibold text-gray-700 mb-2">
-              Ask a question about document #{selectedDocId}
-            </h3>
-            <div className="flex flex-col md:flex-row gap-4">
-              <input
-                type="text"
-                value={question}
-                onChange={(e) => setQuestion(e.target.value)}
-                placeholder="Type your question here"
-                className="flex-1 border px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={loading}
-              />
-              <button
-                onClick={handleAsk}
-                disabled={loading}
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
-              >
-                Ask
-              </button>
-            </div>
-
-            {answer && (
-              <div className="mt-4 p-4 border rounded bg-blue-50">
-                <strong className="text-blue-800">Answer:</strong>
-                <p className="text-gray-700 mt-1">{answer}</p>
-              </div>
             )}
-          </div>
-        )}
-      </div>
-    </div>
-  );
+
+            {/* Upload / Edit Section */}
+            <section className="w-full max-w-xl mb-12 text-center">
+                <h2 className="text-2xl font-semibold mb-4">
+                    {editingDocId ? "✏️ Edit Document" : "📤 Upload a New Document"}
+                </h2>
+                <form
+                    onSubmit={editingDocId ? handleUpdate : handleUpload}
+                    className="space-y-4"
+                >
+                    <input
+                        type="text"
+                        placeholder="Document title"
+                        value={editingDocId ? editTitle : title}
+                        onChange={(e) =>
+                            editingDocId
+                                ? setEditTitle(e.target.value)
+                                : setTitle(e.target.value)
+                        }
+                        required
+                        className="w-full border px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        disabled={loading}
+                    />
+                    <div className="space-y-1">
+                        <input
+                            type="file"
+                            accept="application/pdf"
+                            onChange={(e) =>
+                                editingDocId
+                                    ? setEditFile(e.target.files[0])
+                                    : setFile(e.target.files[0])
+                            }
+                            className="w-full"
+                            disabled={loading}
+                        />
+                        <p className="text-sm text-gray-500 italic">
+                            {editingDocId
+                                ? editFile
+                                    ? `Selected: ${editFile.name} (${(editFile.size / 1024).toFixed(1)} KB)`
+                                    : "No new file selected"
+                                : file
+                                    ? `Selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`
+                                    : "No file selected"}
+                        </p>
+
+                    </div>
+
+                    <div className="space-x-3">
+                        <button
+                            type="submit"
+                            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+                            disabled={loading}
+                        >
+                            {editingDocId ? "Update Document" : "Upload"}
+                        </button>
+                        {editingDocId && (
+                            <button
+                                type="button"
+                                onClick={cancelEdit}
+                                className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500"
+                            >
+                                Cancel
+                            </button>
+                        )}
+                    </div>
+                </form>
+            </section>
+
+            {/* Document List */}
+            <section className="w-full max-w-3xl mb-12 text-center">
+                <h2 className="text-2xl font-semibold mb-4">Your Documents</h2>
+                {documents.length === 0 ? (
+                    <p className="text-gray-500">No documents found.</p>
+                ) : (
+                    <div className="space-y-4">
+                        {documents.map((doc) => (
+                            <div
+                                key={doc.id}
+                                className="border border-gray-200 bg-white rounded p-4 flex flex-col md:flex-row md:items-center justify-between shadow-sm"
+                            >
+                                <div className="text-lg font-medium text-gray-800 text-left">
+                                    {doc.title}{" "}
+                                    <span className="text-sm text-gray-500">
+                                        ({doc.file.split("/").pop()})
+                                    </span>
+                                </div>
+                                <div className="mt-2 md:mt-0 space-x-2 text-right">
+                                    <button
+                                        onClick={() => startEdit(doc)}
+                                        className="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600"
+                                        disabled={loading}
+                                    >
+                                        Edit
+                                    </button>
+                                    <button
+                                        onClick={() => handleDelete(doc.id)}
+                                        className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
+                                        disabled={loading}
+                                    >
+                                        Delete
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setSelectedDocId(doc.id);
+                                            setAnswer("");
+                                            setQuestion("");
+                                        }}
+                                        className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+                                        disabled={loading}
+                                    >
+                                        Ask
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </section>
+
+            {/* Q&A Section */}
+            {selectedDocId && (
+                <section className="w-full max-w-3xl text-center">
+                    {(() => {
+                        const selectedDoc = documents.find(
+                            (doc) => doc.id === selectedDocId
+                        );
+                        return (
+                            <h2 className="text-2xl font-semibold mb-4">
+                                ❓ Ask a Question about "{selectedDoc?.title}"
+                            </h2>
+                        );
+                    })()}
+                    <div className="flex flex-col md:flex-row gap-4 justify-center">
+                        <input
+                            type="text"
+                            value={question}
+                            onChange={(e) => setQuestion(e.target.value)}
+                            placeholder="Type your question here"
+                            className="flex-1 border px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            disabled={loading}
+                        />
+                        <button
+                            onClick={handleAsk}
+                            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                            disabled={loading}
+                        >
+                            Ask
+                        </button>
+                    </div>
+
+                    {answer && (
+                        <div className="mt-6 bg-white p-4 border border-blue-100 rounded shadow-sm text-left">
+                            <strong className="text-blue-800">AI Answer:</strong>
+                            <p className="text-gray-700 mt-2">{answer}</p>
+                        </div>
+                    )}
+                </section>
+            )}
+            <ToastContainer position="top-right" autoClose={3000} />
+        </div>
+    );
+
+
 };
 
 export default Dashboard;

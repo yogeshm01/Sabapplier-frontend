@@ -18,7 +18,7 @@ const Login = () => {
             const res = await axios.post('/auth/login/', form);
             localStorage.setItem('access', res.data.access);
             localStorage.setItem('refresh', res.data.refresh);
-            navigate('/dashboard');
+            navigate('/landing');
         } catch (err) {
             alert("Login failed");
             console.error(err.response?.data);
