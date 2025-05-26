@@ -18,14 +18,6 @@ const Footer = () => {
           <Link to="/dashboard" className="hover:text-blue-600 transition">
             Dashboard
           </Link>
-          <a
-            href="https://github.com/yourusername/your-repo"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-blue-600 transition"
-          >
-            GitHub
-          </a>
         </div>
       </div>
     </footer>
